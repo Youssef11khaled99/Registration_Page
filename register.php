@@ -7,106 +7,43 @@ $_SESSION['message'] ='';
 
  
 // Processing form data when form is submitted
-if($_SERVER["REQUEST_METHOD"] == "POST"){
- 
-    // Validate username
-    if(empty(trim($_POST["username"]))){
-        $_SESSION['message'] = "Please enter a username.";
-    } else{
-        // Prepare a select statement
-        $sql = "SELECT id FROM users WHERE username = ?";
-        
-        if($stmt = $mysqli->prepare($sql)){
-            // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("s", $param_username);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_POST['register'])) {
+        // make sure that the two passwords are the same
+        if ($_POST['password'] == $_POST['confirmPassword']) {
+            $username = $mysqli -> real_escape_string($_POST['username']);
+            $email = $mysqli -> real_escape_string($_POST['email']);
+            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            $image_path = $mysqli -> real_escape_string('images/'.$_FILES['userImage']['name']);
             
-            // Set parameters
-            $param_username = trim($_POST["username"]);
-            
-            // Attempt to execute the prepared statement
-            if($stmt->execute()){
-                // store result
-                $stmt->store_result();
-                
-                if($stmt->num_rows == 1){
-                    $_SESSION['message'] = "This username is already taken.";
-                } else{
-                    $username = trim($_POST["username"]);
+            if (preg_match("!image!", $_FILES['userImage']['type'])) {
+                // copy image to images folder
+                if (copy($_FILES['userImage']['tmp_name'], $image_path)) {
+                    $_SESSION['username'] = $username;
+                    $_SESSION['userImage'] = $image_path;
+
+                    $sql = "INSERT INTO users (username, email, password, image)"
+                            . "VALUES  ('$username', '$email', '$password', '$image_path')";
+                    if ($mysqli->query($sql) === true) {
+                        $_SESSION['message'] = "Registration successful! Added $username to the database!";
+                        header("location: login.php");
+                    } else {
+                        $_SESSION['message'] = "User could not be added to the database!";
+                    }
+
+                } else {
+                    $_SESSION['message'] = "File upload failed";
                 }
-            } else{
-                echo "Oops! Something went wrong. Please try again later.";
+            } else {
+                $_SESSION['message'] = "Please only upload GIF, JPG, PNG images!";
             }
+        } else {
+            $_SESSION['message'] = "Two passwords do not match!";
         }
-         
-        // Close statement
-        $stmt->close();
+        $_SESSION['checkUser'] = false;
     }
     
-    // Validate email
-    if(empty(trim($_POST["email"]))){
-        $_SESSION['message'] = "Please enter your email.";     
-    } elseif(!preg_match("/^[a-zA-Z ]*$/",$name)){
-        $_SESSION['message'] = "Please enter write email";
-    } else{
-        $email = trim($_POST["email"]);
-    }
 
-    // Validate Image
-    if (preg_match("!image!", $_FILES['userImage']['type'])) {
-        // copy image to images folder
-        if (copy($_FILES['userImage']['tmp_name'], $image_path)) {
-            $_SESSION['userImage'] = $image_path;
-        }
-    }
-
-    // Validate password
-    if(empty(trim($_POST["password"]))){
-        $_SESSION['message'] = "Please enter a password.";     
-    } elseif(strlen(trim($_POST["password"])) < 6){
-        $_SESSION['message'] = "Password must have at least 6 characters.";
-    } else{
-        $password = trim($_POST["password"]);
-    }
-    
-    // Validate confirm password
-    if(empty(trim($_POST["confirm_password"]))){
-        $_SESSION['message'] = "Please confirm password.";     
-    } else{
-        $confirm_password = trim($_POST["confirm_password"]);
-        if(empty($password_err) && ($password != $confirm_password)){
-            $_SESSION['message'] = "Password did not match.";
-        }
-    }
-    
-    // Check input errors before inserting in database
-    if(empty($username) && empty($password) && empty($confirm_password) && empty($email) && empty($image_path)){
-        
-        // Prepare an insert statement
-        $sql = "INSERT INTO users (username, email, password, image) VALUES (?, ?, ?, $image_path)";
-         
-        if($stmt = $mysqli->prepare($sql)){
-            // Bind variables to the prepared statement as parameters
-            $stmt->bind_param("ssss", $param_username, $param_password, $email, $image_path);
-            
-            // Set parameters
-            $param_username = $username;
-            $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
-            
-            // Attempt to execute the prepared statement
-            if($stmt->execute()){
-                // Redirect to login page
-                header("location: login.php");
-            } else{
-                echo "Something went wrong. Please try again later.";
-            }
-        }
-         
-        // Close statement
-        $stmt->close();
-    }
-    
-    // Close connection
-    $mysqli->close();
 }
 ?>
  
