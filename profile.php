@@ -117,9 +117,7 @@ $mysqli->close();
     <title>Document</title>
 </head>
 <body>
-    <nav style="display: 'flex', justifyContent: 'flex-end'"> 
-        <button onclick="location.href = '/intCoreTask/form.php';">Sign Out</button>
-    </nav> 
+    <h2><a href = "logout.php">Sign Out</a></h2>
     <div class="body content">
         <div class="profile">
             <div class="alert alert-success"><?= $_SESSION['message'] ?></div>
